@@ -1,0 +1,605 @@
+# Basic yaml code to get the ESP32E28R display to work in ESPHome.
+#
+
+#
+# ============================================================ 
+# NOTE:
+# In order for this to work you need to add the following settings in your secrets.yaml file:
+# - api_key
+# - ota_password
+# - wifi_ssid
+# - wifi_password
+# - ap_password
+#
+# Create a folder named fonts in your ESPHome folder, and copy the file fonts/Arimo-Regular.ttf there.
+#
+# ============================================================ 
+# Example file setup
+# Change the naming below, they will be the names used in Home Assistant
+#
+substitutions:
+  device_name: yellowtft1     #You can change this in a name you want
+  friendly_name: Yellow TFT 1 #You can change this in a frendly name you want
+
+# ============================================================ 
+# Standard ESPHome setup
+#
+# ESPHome naming
+esphome:
+  name: display-wohnzimmer             #You can change this in a name you want
+  friendly_name: display-wohnzimmer    #You can change this in a frendly name you want
+ 
+# The ESP32E028R uses a standard ESP32-WROVER, so we use the esp32dev defintion
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "You have to change!"
+
+# Set OTA password
+ota:
+  platform: esphome
+  password: "You have to change!"
+
+# Setup WiFi credentials
+wifi:
+  ssid: "You have to change!"
+  password: "You have to change!"
+  use_address: 192.168.X.XXX    #Change in your IP you want
+  manual_ip:
+    static_ip: 192.168.X.XXX    #Change in your IP you want
+    gateway: 192.168.X.XXX      #Change in your Router IP
+    subnet: 255.255.255.0       #Change to your Subnet
+    dns1: 192.168.X.XXX         #Change in your DNS Server (most Router IP)
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Wohnzimmer_Display"
+    password: "You have to change!"
+
+captive_portal:
+
+
+# ============================================================ 
+# ESPHome Display related setup
+globals:
+  - id: show_return_page
+    type: bool
+    restore_value: yes
+    initial_value: "false"
+
+# Setup a pin to control the backlight and the LED
+output:
+  - platform: ledc
+    pin: GPIO21
+    id: backlight_pwm
+  - platform: ledc
+    id: output_red
+    pin: GPIO4
+    inverted: true
+  - platform: ledc
+    id: output_green
+    pin: GPIO16
+    inverted: true
+  - platform: ledc
+    id: output_blue
+    pin: GPIO17
+    inverted: true
+light:
+  - platform: monochromatic
+    output: backlight_pwm
+    name: Display Backlight
+    id: backlight
+    restore_mode: ALWAYS_ON
+  - platform: rgb
+    name: LED
+    red: output_red
+    id: led
+    green: output_green
+    blue: output_blue
+    restore_mode: ALWAYS_OFF
+# Setup SPI for the display. The ESP32-2432S028R uses separate SPI buses for display and touch
+spi:
+  - id: tft
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+  - id: touch
+    clk_pin: GPIO25
+    mosi_pin: GPIO32
+    miso_pin: GPIO39
+#--------------------------------------------------------------------
+touchscreen:
+  platform: xpt2046
+  spi_id: touch
+  cs_pin: GPIO33
+  interrupt_pin: GPIO36
+  update_interval: 50ms
+  threshold: 400
+  calibration:
+    x_min: 320
+    x_max: 3700
+    y_min: 200
+    y_max: 3700
+  transform:
+    mirror_x: true
+    mirror_y: false
+    swap_xy: false 
+    #------------------------------------------------------------------
+# Create a font to use, add and remove glyphs as needed. 
+# Erstellen Sie eine Schriftart, fügen Sie nach Bedarf Glyphen hinzu oder entfernen Sie sie
+font:
+  - file: "gfonts://Space Grotesk"
+    id: fecha
+    size: 15
+  - file: "gfonts://Space Grotesk"
+    id: hora
+    size: 60
+  - file: "gfonts://Roboto"
+    id: info
+    size: 15
+  - file: "gfonts://Noto Sans"
+    id: infol
+    size: 20
+    glyphs: ["ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", "0123456789", " ", "!@#$%^&*()-_=+{}[];:'\",.<>?/|\\" , "äöüßÄÖÜ"]   
+  - file: "gfonts://Roboto"
+    id: botones
+    size: 11
+    glyphs: ["ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", "0123456789", " ", "!@#$%^&*()-_=+{}[];:'\",.<>?/|\\" , "äöüßÄÖÜ"]
+
+
+# Create the colors you want to use.
+# Erstellen Sie die Farben, die Sie verwenden möchten.
+color:
+  - id: black
+    hex: '000000'
+  - id: orange
+    hex: 'FFA500' 
+  - id: blue
+    hex: '03a9f4'
+  - id: grey
+    hex: '464646'
+    
+# Create the icons you want to use.
+# Erstellen Sie die Symbole, die Sie verwenden möchten.
+image:
+  - file: mdi:home-thermometer
+    id: hometemperature
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:home-thermometer-outline
+    id: outsidetemperature
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:molecule-co2
+    id: co2
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:thermometer-water
+    id: watertemp
+    resize: 40x40
+    type: GRAYSCALE
+#  - file: mdi:weather-partly-cloudy
+#    id: weather
+#    resize: 40x40
+#    type: GRAYSCALE
+#  - file: mdi:finance
+#    id: finance
+#    resize: 40x40
+#    type: GRAYSCALE
+  - file: mdi:pump
+    id: pump
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:heart-pulse
+    id: health
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:page-previous
+    id: back
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:fan
+    id: fan
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:thermostat
+    id: thermostat
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:robot-vacuum
+    id: vacuum
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:desk-lamp
+    id: desk
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:printer
+    id: printer
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:fan
+    id: fanpic
+    resize: 40x40
+    type: GRAYSCALE
+  - file: mdi:home-assistant
+    id: habbit
+    resize: 40x40
+    type: GRAYSCALE
+#Alternative zur Animation
+  - file: mdi:home-assistant
+    id: homeassistant_front
+    resize: 70x70
+    type: GRAYSCALE
+# Replace the home gif as you want.
+# Ersetzen Sie das home gif nach Belieben.
+#animation:
+#  - file: "habbit.gif"
+#    id: ha
+#    resize: 70x70
+#    type: BINARY
+#    transparency: chroma_key
+# This will fetch time from Home Assistant
+time:
+  - platform: homeassistant
+    id: esptime
+# Create sensors from HA you want to use and show.
+# Crea los sensores de HA que quieres utilizar y mostrar.
+sensor:
+  - platform: homeassistant
+    id: tempaussen
+    entity_id: sensor.wohnzimmer_aussen_temperatur
+    internal: true
+  - platform: homeassistant
+    id: humaussen
+    entity_id: sensor.wohnzimmer_aussen_luftfeuchtigkeit
+    internal: true
+  - platform: homeassistant
+    id: tempinnen
+    entity_id: sensor.netatmo_basis_temperature
+    internal: true
+  - platform: homeassistant
+    id: huminnen
+    entity_id: sensor.netatmo_basis_humidity
+    internal: true
+  - platform: homeassistant
+    id: co2unten
+    entity_id: sensor.netatmo_basis_co2
+    internal: true
+  - platform: homeassistant
+    id: co2oben
+    entity_id: sensor.netatmo_oben_co2
+    internal: true    
+  - platform: homeassistant
+    id: watertempsensor
+    entity_id: sensor.espaltherma_istbrauchwasser
+    internal: true
+  - platform: homeassistant
+    id: fanspeedzu
+    entity_id: sensor.beluftungsanlage_esp32_zuluft_drehzahl
+    internal: true
+  - platform: homeassistant
+    id: fanspeedab
+    entity_id: sensor.beluftungsanlage_esp32_abluft_drehzahl
+    internal: true  
+
+text_sensor:
+  - platform: homeassistant
+    id: lueftungsstatus
+    entity_id: input_select.wohnraunluftung_ein_aus_manuell
+    internal: true
+  - platform: homeassistant
+    id: calefaccion
+    entity_id: climate.salon
+    internal: true
+  - platform: homeassistant
+    id: aspirador
+    entity_id: vacuum.aspirador
+    internal: true
+  - platform: homeassistant
+    id: escritorio
+    entity_id: light.escritorio
+    internal: true
+  - platform: homeassistant
+    id: impresora
+    entity_id: switch.impresora
+    internal: true
+  - platform: homeassistant
+    id: pumpstate
+    entity_id: switch.pumpe_zysterne
+    internal: true
+# Assigns a function to each button, by calling the corresponding service in HA.
+# Für 8 Buttons die # bei button 1 und 2 entfernen
+binary_sensor:
+#  - platform: touchscreen
+#    name: Button 1
+#    x_min: 0
+#    x_max: 118
+#    y_min: 0
+#    y_max: 78
+#    on_press:
+#      then:
+#        - if:
+#            condition:
+#              lambda: 'return !id(show_return_page);'
+#            then:
+#              - globals.set:
+#                  id: show_return_page
+#                  value: !lambda "return !id(show_return_page);"
+#            else:
+#              - homeassistant.service:
+#                  service: switch.toggle
+#                  data:
+#                    entity_id: switch.aire_acondicionado
+#  - platform: touchscreen
+#    name: Button 2
+#    x_min: 122
+#    x_max: 240
+#    y_min: 0
+#    y_max: 78
+#    on_press:
+#      then:
+#        - if:
+#            condition:
+#              lambda: 'return !id(show_return_page);'
+#            then:
+#              - globals.set:
+#                  id: show_return_page
+#                  value: !lambda "return !id(show_return_page);"
+#            else:
+#              - homeassistant.service:
+#                  service: climate.toggle
+#                  data:
+#                    entity_id: climate.salon
+  - platform: touchscreen
+    name: Button 3
+    x_min: 0
+    x_max: 118
+    y_min: 82
+    y_max: 158
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: 'return !id(show_return_page);'
+            then:
+              - globals.set:
+                  id: show_return_page
+                  value: !lambda "return !id(show_return_page);"
+            else:
+              - homeassistant.service:
+                  service: input_select.select_next
+                  data:
+                    entity_id: input_select.wohnraunluftung_ein_aus_manuell
+  - platform: touchscreen
+    name: Button 4
+    x_min: 122
+    x_max: 240
+    y_min: 82
+    y_max: 158
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: 'return !id(show_return_page);'
+            then:
+              - globals.set:
+                  id: show_return_page
+                  value: !lambda "return !id(show_return_page);"
+            else:
+              - homeassistant.service:
+                  service: light.toggle
+                  data:
+                    entity_id: switch.pumpe_zysterne
+  - platform: touchscreen
+    name: Button 5
+    x_min: 0
+    x_max: 118
+    y_min: 162
+    y_max: 238
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: 'return !id(show_return_page);'
+            then:
+              - globals.set:
+                  id: show_return_page
+                  value: !lambda "return !id(show_return_page);"
+            else:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.impresora
+  - platform: touchscreen
+    name: Button 6
+    x_min: 122
+    x_max: 240
+    y_min: 162
+    y_max: 238
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: 'return !id(show_return_page);'
+            then:
+              - globals.set:
+                  id: show_return_page
+                  value: !lambda "return !id(show_return_page);"
+            else:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.pumpe_zysterne
+  - platform: touchscreen
+    name: Button 7
+    x_min: 0
+    x_max: 118
+    y_min: 242
+    y_max: 320
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: 'return !id(show_return_page);'
+            then:
+              - globals.set:
+                  id: show_return_page
+                  value: !lambda "return !id(show_return_page);"
+  - platform: touchscreen
+    name: Button 8
+    x_min: 122
+    x_max: 240
+    y_min: 242
+    y_max: 320
+    on_press:
+      then:
+        - globals.set:
+            id: show_return_page
+            value: !lambda "return !id(show_return_page);"
+
+display:
+  - platform: ili9xxx
+    id: esp_display
+    model: ili9341
+    spi_id: tft
+    cs_pin: GPIO15
+    dc_pin: GPIO2
+    rotation: 0
+    invert_colors: false
+    color_palette: 8bit
+    show_test_card: false
+    dimensions:
+      width: 240
+      height: 320
+    lambda: |-
+      if (id(show_return_page)) {
+        it.print(15, 15, id(infol), "Lüftung:");
+        it.print(150, 15, id(infol), id(lueftungsstatus).state.c_str());
+        it.print(15, 45, id(info), "Drehzahl Zuluft:");
+        it.printf(150, 45, id(info), "%.0f rpm", id(fanspeedzu).state);   
+        it.print(15, 61, id(info), "Drehzahl Abluft:");
+        it.printf(150, 61, id(info), "%.0f rpm", id(fanspeedab).state);       
+        int button_width = 100;
+        int button_height = 65;
+        int x_start = 15;  
+        int y_start = 90;    // 15 bei 8 Buttons   90 bei 6 Buttons
+        int x_padding = 10;  
+        int y_padding = 10;
+        // Definieren Sie die Texte für die Schaltflächen
+        const char* button_texts[] = {
+          //"Button 1", // für 8 Buttons diese // entfernen
+          //"Button 2", // für 8 Buttons diese // entfernen
+          "Lüftung",
+          "Button 4",
+          "Button 5",
+          "Pumpe",
+          "Habbit",
+          "Back"
+        };
+        for (int row = 0; row < 3; row++) {   // für 8 Buttons 3 in 4 ändern
+          for (int col = 0; col < 2; col++) {
+            int button_index = row * 2 + col;
+            int x = x_start + col * (button_width + x_padding);
+            int y = y_start + row * (button_height + y_padding);
+            it.rectangle(x, y, button_width, button_height, id(grey));
+            int text_width = strlen(button_texts[button_index]) * 5.5; 
+            int text_height = 16; 
+            it.print(x + (button_width - text_width) / 2, y + (button_height - text_height) / 2 + 20, id(botones), button_texts[button_index]);
+          }
+        }
+        //if (id(aireacondicionado).state == "on") {
+        //  it.image(45, 20, id(fan), id(orange));
+        //} else {
+        //  it.image(45, 20, id(fan), id(grey));
+        //}
+        //if (id(calefaccion).state == "off") {
+        //  it.image(155, 20, id(thermostat), id(grey));
+        //} else {
+        //  it.image(155, 20, id(thermostat), id(orange));
+        //}
+        //if (id(aspirador).state == "docked") {
+        //  it.image(45, 95, id(vacuum), id(grey));
+        //} else {
+        //  it.image(45, 95, id(vacuum), id(orange));
+        //}
+        it.image(45, 95, id(fanpic), id(blue));
+        if (id(escritorio).state == "on") {
+          it.image(155, 95, id(desk), id(orange));
+        } else {
+          it.image(155, 95, id(desk), id(grey));
+        }
+        if (id(impresora).state == "on") {
+          it.image(45, 170, id(printer), id(orange));
+        } else {
+          it.image(45, 170, id(printer), id(grey));
+        }
+        if (id(pumpstate).state == "on") {
+          it.image(155, 170, id(pump), id(orange));
+        } else {
+          it.image(155, 170, id(pump), id(blue));
+        }
+        it.image(45, 245, id(habbit), id(grey));
+        it.image(155, 245, id(back), id(blue));
+      } else {
+        static int y = 175;
+        static int y_direction = 4;  // Geschwindigkeit der Bewegung
+        const int y_min = 165;       
+        const int y_max = 195;       
+        it.fill(id(black));
+        it.strftime(120, 60, id(fecha), TextAlign::CENTER, "%d/%m/%Y", id(esptime).now());
+        it.strftime(120, 92, id(hora), TextAlign::CENTER, "%H:%M", id(esptime).now());
+        it.image(120, y, id(homeassistant_front), ImageAlign::CENTER);
+        y += y_direction;
+        if (y <= y_min || y >= y_max) {
+          y_direction = -y_direction;
+        }
+        static int current_text_index = 0;
+        static float text_timer = 0;
+        const float text_interval = 5.0;  // Intervall für die Änderung des Textes in Sekunden
+        text_timer += 1.0;  
+        if (text_timer >= text_interval) {
+          text_timer = 0;
+          current_text_index = (current_text_index + 1) % 4;  // Abwechselnd zwischen vier Texten
+        }
+        if (current_text_index == 0) {
+          it.image(15, 260, id(hometemperature), id(blue));
+          it.print(70, 260, id(info), "Temp aussen");
+          it.printf(175, 260, id(info), "%.1f C", id(tempaussen).state);
+          it.print(70, 280, id(info), "Hum aussen");
+          it.printf(175, 280, id(info), "%.1f %%", id(humaussen).state);
+        } else if (current_text_index == 1) {
+          it.image(15, 260, id(outsidetemperature), id(blue));
+          it.print(70, 260, id(info), "Temp innen");
+          it.printf(175, 260, id(info), "%.1f C", id(tempinnen).state);
+          it.print(70, 280, id(info), "Hum innen");
+          it.printf(175, 280, id(info), "%.1f %%", id(huminnen).state);
+        } else if (current_text_index == 2) {
+          it.image(15, 260, id(co2), id(blue));
+          it.print(70, 260, id(info), "Co2 unten");
+          it.printf(165, 260, id(info), "%.0f ppm", id(co2unten).state);
+          it.print(70, 280, id(info), "Co2 oben");
+          it.printf(165, 280, id(info), "%.0f ppm", id(co2oben).state);
+        } else if (current_text_index == 3) {
+          it.image(15, 260, id(watertemp), id(blue));
+          it.print(70, 260, id(info), "Wassertemp");
+          it.printf(175, 260, id(info), "%.1f C", id(watertempsensor).state);
+          //it.print(70, 280, id(info), "Distancia");
+          //it.printf(175, 280, id(info), "%.1f Km%", id(distancia).state);
+        }
+      }
+#interval:
+#  - interval: 1s
+#    then:
+#      animation.next_frame: ha
+
+
+

@@ -1,0 +1,152 @@
+substitutions:
+  friendly_name: Belueftungsanlage_ESP32  #you can change
+
+esphome:
+  name: beluftungsanlage_esp32     #you can change
+
+#Board
+esp32:
+  board: nodemcu-32s
+  framework:
+    type: arduino
+    version: 2.0.0
+
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+#  encryption:
+#    key: "you have to change!"
+
+ota:
+- platform: esphome
+  password: "you have to change!"
+  port: 8266
+#  safe_mode: true
+
+
+wifi:
+  ssid: "you have to change!"
+  password: "you have to change!"
+  use_address: 192.168.xxx.xxx    #Change in your IP you want
+  manual_ip:
+    static_ip: 192.168.xxx.xxx    #Change in your IP you want
+    gateway: 192.168.xxx.xxx      #Change in your Router IP
+    subnet: 255.255.255.0         #Change to your Subnet
+    dns1: 192.168.xxx.xxx         #Change in your DNS server (most Router IP)
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Belueftungsanlage_ESP32"
+    password: "you have to change!"
+
+captive_portal:
+    
+
+output:
+#Zulüftlüfter
+  - platform: ledc
+    pin: 
+      number: GPIO5
+    min_power: 0.000
+    max_power: 1.0
+    frequency: "10000 Hz"
+    id: pwm_output1
+    channel: 0
+
+#Abluftlüfter
+  - platform: ledc
+    pin: 
+      number: GPIO4
+    min_power: 0.000
+    max_power: 1.0
+    frequency: "10000 Hz"
+    id: pwm_output2
+    channel: 2
+
+
+fan:
+  - platform: speed
+    output: pwm_output1
+    name: "Zuluftlüfter"
+    speed_count: 100
+#      low: 0.05
+#      medium: 0.4
+#      high: 1
+  - platform: speed
+    output: pwm_output2
+    name: "Abluftlüfter"
+    speed_count: 100
+#      low: 0.01
+#      medium: 0.055
+#      high: 0.115
+
+
+
+sensor:
+# Reports RPM by pulse_counter
+
+  - platform: pulse_counter
+    pin: GPIO15
+#      number: D6
+#      mode:
+#       input: true
+#        pullup: true
+    name: Abluft Drehzahl
+    id: fan_pulse_ab
+    unit_of_measurement: 'RPM'
+    filters:
+      - multiply: 1
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 5s
+
+
+  - platform: pulse_counter
+    pin: GPIO0
+#      number: D6
+#      mode:
+#       input: true
+#        pullup: true
+    name: Zuluft Drehzahl
+    id: fan_pulse_zu
+    unit_of_measurement: 'RPM'
+    filters:
+      - multiply: 1
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 4s
+
+
+#THD22
+#  - platform: dht
+#    pin: GPIO16
+#    temperature:
+#      name: "Temp Belüftung"
+#    humidity:
+#      name: "Humidity Belüftung"
+#    update_interval: 60s
+
+
+
+
+# Send WiFi signal strength & uptime to HA
+  - platform: wifi_signal
+    name: $friendly_name WiFi Strength
+    update_interval: 240s
+
+text_sensor:
+  # Send IP Address
+  - platform: wifi_info
+    ip_address:
+      name: $friendly_name IP Address
+
+
+web_server:
+  port: 80
+
+
