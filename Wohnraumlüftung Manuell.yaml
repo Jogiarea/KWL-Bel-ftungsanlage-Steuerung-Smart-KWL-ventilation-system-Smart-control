@@ -1,0 +1,65 @@
+alias: Wohnraumlüftung Manuell
+description: ""
+triggers:
+  - entity_id:
+      - input_select.wohnraunluftung_ein_aus_manuell
+    trigger: state
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_select.wohnraunluftung_ein_aus_manuell
+            state: Ein
+        sequence:
+          - action: automation.turn_on
+            data: {}
+            target:
+              entity_id: automation.wohnraumluftung_steuerung
+      - conditions:
+          - condition: state
+            entity_id: input_select.wohnraunluftung_ein_aus_manuell
+            state: Aus
+        sequence:
+          - action: automation.turn_off
+            data: {}
+            target:
+              entity_id: automation.wohnraumluftung_steuerung
+          - type: turn_off
+            device_id: 36ac62ccf31778b9362e20c11de7696a
+            entity_id: dac54d12465125424a46f187a23dd7ca
+            domain: fan
+          - type: turn_off
+            device_id: 36ac62ccf31778b9362e20c11de7696a
+            entity_id: f7e955bee1c89f94b18c1192ed089eee
+            domain: fan
+      - conditions:
+          - condition: state
+            entity_id: input_select.wohnraunluftung_ein_aus_manuell
+            state: Manuell
+        sequence:
+          - action: automation.turn_off
+            metadata: {}
+            data:
+              stop_actions: true
+            target:
+              entity_id: automation.wohnraumluftung_steuerung
+          - action: fan.set_percentage
+            metadata: {}
+            data:
+              percentage: 30
+            target:
+              entity_id:
+                - fan.beluftungsanlage_esp32_abluftl_fter
+                - fan.beluftungsanlage_esp32_zuluftl_fter
+      - conditions:
+          - condition: state
+            entity_id: input_select.wohnraunluftung_ein_aus_manuell
+            state: Sommer
+        sequence:
+          - action: automation.turn_on
+            metadata: {}
+            data: {}
+            target:
+              entity_id: automation.wohnraumluftung_steuerung
+mode: single
