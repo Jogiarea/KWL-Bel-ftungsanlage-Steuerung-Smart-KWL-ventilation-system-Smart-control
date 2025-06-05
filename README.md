@@ -32,7 +32,10 @@ https://amzn.to/45bLyxi
  
 
 Die Lüfter von ebm-Papst benötigen eine 0-10V oder 10V PWM Signal, weshalb diese nicht direkt an den PWM-Ausgang eines ESP32-Node-MCU (3,3V PWM) angeschlossen werden können.
-![ebm-papst Anschlussbild](https://github.com/user-attachments/assets/21883e3a-3bce-4703-be7b-128004538c61)![ebm-papst Anschlussbild](https://github.com/user-attachments/assets/aa29091a-e23f-47c4-ab9a-59046770c762)
+
+![ebm-papst Anschlussbild](https://github.com/user-attachments/assets/21883e3a-3bce-4703-be7b-128004538c61)
+![ebm-papst Anschlussbild 2](https://github.com/user-attachments/assets/97d840ea-fbfa-41b9-a778-c96a2b29b828)
+
 
 
 Erster Schritt:
@@ -137,7 +140,10 @@ https://amzn.to/45bLyxi
  
 
 The fans from ebm-Papst require a 0-10V or 10V PWM signal, which is why they cannot be connected directly to the PWM output of an ESP32 node MCU (3.3V PWM).
-![ebm-papst Anschlussbild](https://github.com/user-attachments/assets/21883e3a-3bce-4703-be7b-128004538c61)![ebm-papst Anschlussbild](https://github.com/user-attachments/assets/aa29091a-e23f-47c4-ab9a-59046770c762)
+
+![ebm-papst Anschlussbild](https://github.com/user-attachments/assets/21883e3a-3bce-4703-be7b-128004538c61)
+![ebm-papst Anschlussbild 2](https://github.com/user-attachments/assets/97d840ea-fbfa-41b9-a778-c96a2b29b828)
+
 
 
 First step:
@@ -201,16 +207,11 @@ and his Discord channel
 
 The ESP Home yaml can be found in the appendix and must still be adapted to your needs.
 
+Please note that there are now several versions of the CYD (Cheap-Yellow-Display) here you may also need other drivers and may have to configure the display rotation and the touch differently.
 
-
-
-
+I have powered the whole thing with 5V, using the existing cable of the old KWL controller from the same power supply unit as in step one. The CYD has a 5V to 3.3V voltage regulator built in. 
 
 
 
 ![20250525_154514](https://github.com/user-attachments/assets/c5bc5f18-2cbb-49bd-915c-b8e568754cd4)
 
-
-Please note that there are now several versions of the CYD (Cheap-Yellow-Display) here you may also need other drivers and may have to configure the display rotation and the touch differently.
-
-I have powered the whole thing with 5V, using the existing cable of the old KWL controller from the same power supply unit as in step one. The CYD has a 5V to 3.3V voltage regulator built in. 
