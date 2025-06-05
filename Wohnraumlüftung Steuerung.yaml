@@ -1,0 +1,288 @@
+alias: Wohnraumlüftung Steuerung
+description: >-
+  Regelt die Lüftungsanlage basierend auf Temperatur, Luftfeuchte und dem
+  höchsten CO2-Wert
+triggers:
+  - id: co2_steuerung_zeit
+    trigger: time_pattern
+    seconds: /55
+    alias: jede 55 Sekunden Auslösen
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - co2_steuerung_zeit
+          - condition: numeric_state
+            entity_id: sensor.hum_temp_bad_humidity
+            above: 70
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Ein
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Sommer
+          - condition: not
+            conditions:
+              - condition: time
+                after: "20:15:00"
+                before: "07:00:00"
+                weekday:
+                  - sun
+                  - sat
+                  - fri
+                  - thu
+                  - wed
+                  - tue
+                  - mon
+        sequence:
+          - action: fan.set_percentage
+            metadata: {}
+            data:
+              percentage: 31
+            target:
+              entity_id:
+                - fan.beluftungsanlage_esp32_abluftl_fter
+                - fan.beluftungsanlage_esp32_zuluftl_fter
+        alias: Luftfeuchte Bad über 70 Tag
+      - conditions:
+          - condition: trigger
+            id:
+              - co2_steuerung_zeit
+          - condition: numeric_state
+            entity_id: sensor.hum_temp_bad_humidity
+            above: 70
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Ein
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Sommer
+          - condition: time
+            after: "20:15:00"
+            before: "07:00:00"
+            weekday:
+              - sun
+              - sat
+              - fri
+              - thu
+              - wed
+              - tue
+              - mon
+        sequence:
+          - action: fan.set_percentage
+            metadata: {}
+            data:
+              percentage: 24
+            target:
+              entity_id:
+                - fan.beluftungsanlage_esp32_abluftl_fter
+                - fan.beluftungsanlage_esp32_zuluftl_fter
+        alias: Luftfeuchte Bad über 70 Nacht
+      - conditions:
+          - condition: trigger
+            id:
+              - co2_steuerung_zeit
+          - condition: not
+            conditions:
+              - condition: numeric_state
+                entity_id: sensor.hum_temp_bad_humidity
+                above: 70
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Sommer
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Ein
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: >-
+                  {% set co2_max = max(states('sensor.netatmo_basis_co2') |
+                  float,
+                                       states('sensor.netatmo_oben_co2') | float) %}
+                  {{ co2_max < 500 }}
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.wohnzimmer_aussen_temperatur') | float >
+                  states('sensor.netatmo_basis_temperature') | float }}
+        sequence:
+          - action: fan.turn_off
+            metadata: {}
+            data: {}
+            target:
+              entity_id:
+                - fan.beluftungsanlage_esp32_abluftl_fter
+                - fan.beluftungsanlage_esp32_zuluftl_fter
+        alias: co2 unter 500
+      - conditions:
+          - condition: trigger
+            id:
+              - co2_steuerung_zeit
+          - condition: not
+            conditions:
+              - condition: time
+                after: "20:15:00"
+                before: "07:00:00"
+                weekday:
+                  - sun
+                  - sat
+                  - fri
+                  - thu
+                  - wed
+                  - tue
+                  - mon
+              - condition: numeric_state
+                entity_id: sensor.hum_temp_bad_humidity
+                above: 70
+          - condition: state
+            entity_id: input_select.wohnraunluftung_ein_aus_manuell
+            state: Ein
+        sequence:
+          - data:
+              percentage: >
+                {% set co2_max = max(states('sensor.netatmo_basis_co2') | float,
+                states('sensor.netatmo_oben_co2') | float) %} {% if co2_max
+                <=500 %}
+                  9
+                {% elif co2_max >= 1500 %}
+                  31
+                  
+                {% else %}
+                  {{ ((co2_max - 500) / (1500 - 500) * (31 - 9) + 9) | round }}
+                {% endif %}
+            action: fan.set_percentage
+            target:
+              device_id: 36ac62ccf31778b9362e20c11de7696a
+              entity_id:
+                - fan.beluftungsanlage_esp32_abluftl_fter
+                - fan.beluftungsanlage_esp32_zuluftl_fter
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+          - action: fan.set_percentage
+            target:
+              entity_id: fan.beluftungsanlage_esp32_abluftl_fter
+            data:
+              percentage: >-
+                {{ (state_attr('fan.beluftungsanlage_esp32_zuluftl_fter',
+                'percentage') | int + 1) }}
+        alias: Standard Automatikbetrieb
+      - conditions:
+          - condition: trigger
+            id:
+              - co2_steuerung_zeit
+          - condition: not
+            conditions:
+              - condition: time
+                after: "20:15:00"
+                before: "07:00:00"
+                weekday:
+                  - sun
+                  - sat
+                  - fri
+                  - thu
+                  - wed
+                  - tue
+                  - mon
+              - condition: numeric_state
+                entity_id: sensor.hum_temp_bad_humidity
+                above: 70
+          - condition: state
+            entity_id: input_select.wohnraunluftung_ein_aus_manuell
+            state: Sommer
+        sequence:
+          - data:
+              percentage: >
+                {% set co2_max = max(states('sensor.netatmo_basis_co2') | float,
+                states('sensor.netatmo_oben_co2') | float) %} {% if co2_max
+                <=500 %}
+                  9
+                {% elif co2_max >= 1500 %}
+                  31
+                {% else %}
+                  {{ ((co2_max - 500) / (1500 - 500) * (31 - 9) + 9) | round }}
+                {% endif %}
+            action: fan.set_percentage
+            target:
+              device_id: 36ac62ccf31778b9362e20c11de7696a
+              entity_id:
+                - fan.beluftungsanlage_esp32_abluftl_fter
+          - type: turn_off
+            device_id: 36ac62ccf31778b9362e20c11de7696a
+            entity_id: dac54d12465125424a46f187a23dd7ca
+            domain: fan
+        alias: Sommerbetrieb
+      - conditions:
+          - condition: trigger
+            id:
+              - co2_steuerung_zeit
+          - condition: time
+            after: "20:15:00"
+            before: "07:00:00"
+            weekday:
+              - sun
+              - sat
+              - fri
+              - thu
+              - wed
+              - tue
+              - mon
+          - condition: not
+            conditions:
+              - condition: trigger
+                id:
+                  - co2_unter_500
+              - condition: numeric_state
+                entity_id: sensor.hum_temp_bad_humidity
+                above: 70
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Ein
+              - condition: state
+                entity_id: input_select.wohnraunluftung_ein_aus_manuell
+                state: Sommer
+        sequence:
+          - data:
+              percentage: >
+                {% set co2_max = max(states('sensor.netatmo_basis_co2') | float,
+                states('sensor.netatmo_oben_co2') | float) %} {% if co2_max
+                <=500 %}
+                  8
+                {% elif co2_max >= 1500 %}
+                  12
+                  
+                {% else %}
+                  {{ ((co2_max - 500) / (1500 - 500) * (12 - 8) + 8) | round }}
+                {% endif %}
+            action: fan.set_percentage
+            target:
+              device_id: 36ac62ccf31778b9362e20c11de7696a
+              entity_id:
+                - fan.beluftungsanlage_esp32_abluftl_fter
+                - fan.beluftungsanlage_esp32_zuluftl_fter
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+          - action: fan.set_percentage
+            target:
+              entity_id: fan.beluftungsanlage_esp32_abluftl_fter
+            data:
+              percentage: >-
+                {{ (state_attr('fan.beluftungsanlage_esp32_zuluftl_fter',
+                'percentage') | int + 1) }}
+        alias: Nachtbetrieb
+mode: single
